@@ -1,10 +1,10 @@
 # Verbaflow — Kubernetes
 
-Un solo entorno (sin PRO ni Argo). Charts en `api/k8s` y `frontend/k8s`.
+Mismo patrón que **surplus-satellite**: un solo entorno, `values-pre.yaml` para Jenkins (`DEPLOY_PRE`), namespace = nombre de la app.
 
 ## Namespace
 
-Todo en **`verbaflow`** (API y frontend; releases Helm `verbaflow-api` y `verbaflow-frontend`).
+**`verbaflow`** — API y frontend en el mismo namespace (releases `verbaflow-api` y `verbaflow-frontend`).
 
 ## URL pública
 
@@ -13,31 +13,25 @@ Todo en **`verbaflow`** (API y frontend; releases Helm `verbaflow-api` y `verbaf
 - `/` → frontend
 - `/api`, `/health` → API
 
-Gateway `lab`: listener `https-verbaflow` (certificado `verbaflow-gateway-tls` en `verbaflow-front`).
+Gateway `lab`: listener `https-verbaflow` (TLS `verbaflow-gateway-tls`).
 
 ## Secrets
 
-En **`verbaflow`**, secret `backend-secrets`:
+En **`verbaflow`**:
 
-- `DATABASE_URL` → BD `verbaflow` (o el nombre que uses en Postgres)
-- `SURPLUSINTELLIGENCE_API_KEY`
-- `SURPLUS_DATABASE_URL`
-- Resto según `api/env.example`
+- `backend-secrets` — `DATABASE_URL`, `SURPLUSINTELLIGENCE_API_KEY`, `SURPLUS_DATABASE_URL`, etc.
+- `ghcr-secret` — pull de GHCR
 
-En **`verbaflow`**: `ghcr-secret` para GHCR (copia desde otro namespace si hace falta).
+## Despliegue
 
-## Despliegue (Helm directo)
+Jenkins (pipeline genérico) con `values-pre.yaml` y `image.tag=<BUILD_NUMBER>`.
+
+Manual:
 
 ```bash
-helm upgrade --install verbaflow-api ./api/k8s \
-  -n verbaflow \
-  -f api/k8s/values.yaml \
-  --set image.tag=2
+helm upgrade --install verbaflow-api ./api/k8s -n verbaflow \
+  -f api/k8s/values-pre.yaml --set image.tag=2
 
-helm upgrade --install verbaflow-frontend ./frontend/k8s \
-  -n verbaflow \
-  -f frontend/k8s/values.yaml \
-  --set image.tag=2
+helm upgrade --install verbaflow-frontend ./frontend/k8s -n verbaflow \
+  -f frontend/k8s/values-pre.yaml --set image.tag=2
 ```
-
-Los Jenkins de Kaniko solo construyen y suben imagen; el deploy lo haces tú con estos comandos (o un job Jenkins aparte sin publicar a helm-charts/Argo).

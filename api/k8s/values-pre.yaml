@@ -1,3 +1,4 @@
+# Único entorno: Jenkins (DEPLOY_PRE) hace CI y helm upgrade con este fichero.
 namespace: verbaflow
 replicaCount: 1
 registry: ghcr.io/juanfranvelilla/verbaflow-api
