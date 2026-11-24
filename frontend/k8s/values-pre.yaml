@@ -42,6 +42,6 @@ gateway:
   enabled: true
   name: lab
   namespace: jenkins
-  sectionName: https-verbaflow
+  sectionName: https-verbaflow-pre
   issuer: letsencrypt-ovh-prod
   tlsSecret: verbaflow-gateway-tls

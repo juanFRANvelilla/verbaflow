@@ -1,0 +1,27 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/listeners/-",
+    "value": {
+      "name": "https-verbaflow-pre",
+      "hostname": "verbaflow.juanfranciscoperez.es",
+      "port": 443,
+      "protocol": "HTTPS",
+      "allowedRoutes": {
+        "namespaces": {
+          "from": "All"
+        }
+      },
+      "tls": {
+        "mode": "Terminate",
+        "certificateRefs": [
+          {
+            "kind": "Secret",
+            "name": "verbaflow-gateway-tls",
+            "namespace": "verbaflow"
+          }
+        ]
+      }
+    }
+  }
+]

@@ -13,7 +13,16 @@ Mismo patrón que **surplus-satellite**: un solo entorno, `values-pre.yaml` para
 - `/` → frontend
 - `/api`, `/health` → API
 
-Gateway `lab`: listener `https-verbaflow` (TLS `verbaflow-gateway-tls`).
+Gateway `lab`: listener **`https-verbaflow-pre`** (como `https-finance-pre`), TLS `verbaflow-gateway-tls` + `letsencrypt-ovh-prod`.
+
+Tras el primer deploy del **frontend**, añade el listener al Gateway (una vez):
+
+```bash
+kubectl patch gateway lab -n jenkins --type=json \
+  --patch-file k8s/bootstrap/gateway-lab-listener.json
+```
+
+En OVH/DNS: registro **A** (o el mismo patrón que `surplus-satellite.juanfranciscoperez.es`) para `verbaflow.juanfranciscoperez.es`.
 
 ## RBAC para Jenkins (obligatorio una vez)
 

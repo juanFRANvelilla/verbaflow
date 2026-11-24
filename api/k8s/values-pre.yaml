@@ -39,6 +39,6 @@ gateway:
   enabled: true
   name: lab
   namespace: jenkins
-  sectionName: https-verbaflow
+  sectionName: https-verbaflow-pre
 database:
   host: "postgres-service.postgres.svc.cluster.local"
