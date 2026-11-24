@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import current_user_id
-from app.schemas import LookupResponse, LookupSelectBody, SaveLookupBody, VocabItemOut
-from app.services.lookup_service import LookupError, reselect_lookup, run_lookup, save_lookup
+from app.schemas import LookupRefineBody, LookupResponse, LookupTextBody
+from app.services.lookup_service import refine_lookup, run_lookup, run_lookup_from_text
 
 router = APIRouter(prefix="/api/lookup", tags=["lookup"])
 
@@ -14,6 +14,7 @@ router = APIRouter(prefix="/api/lookup", tags=["lookup"])
 @router.post("", response_model=LookupResponse)
 async def create_lookup(
     audio: UploadFile = File(...),
+    language_code: str = Form(default="en"),
     context_note: str | None = Form(default=None),
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(current_user_id),
@@ -23,44 +24,46 @@ async def create_lookup(
         return await run_lookup(
             db,
             user_id=user_id,
+            language_code=language_code,
             audio=data,
             content_type=audio.content_type,
             context_note=context_note,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
 
-@router.patch("/{lookup_id}/select", response_model=LookupResponse)
-async def select_alternative(
-    lookup_id: UUID,
-    body: LookupSelectBody,
+@router.post("/text", response_model=LookupResponse)
+async def create_lookup_from_text(
+    body: LookupTextBody,
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(current_user_id),
 ) -> LookupResponse:
     try:
-        return await reselect_lookup(db, user_id=user_id, lookup_id=lookup_id, selected_text=body.selected_text)
-    except LookupError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
-
-
-@router.post("/{lookup_id}/save", response_model=VocabItemOut)
-async def save_from_lookup(
-    lookup_id: UUID,
-    body: SaveLookupBody,
-    db: AsyncSession = Depends(get_db),
-    user_id: UUID = Depends(current_user_id),
-) -> VocabItemOut:
-    try:
-        vocab = await save_lookup(
+        return await run_lookup_from_text(
             db,
             user_id=user_id,
-            lookup_id=lookup_id,
-            source_id=body.source_id,
-            tags=body.tags,
+            language_code=body.language_code,
+            text=body.text,
+            context_note=body.context_note,
+            stt_source=body.stt_source,
         )
-        return VocabItemOut.model_validate(vocab)
-    except LookupError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+
+
+@router.post("/refine", response_model=LookupResponse)
+async def refine_alternative(
+    body: LookupRefineBody,
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(current_user_id),
+) -> LookupResponse:
+    try:
+        return await refine_lookup(
+            db,
+            user_id=user_id,
+            language_code=body.language_code,
+            selected_text=body.selected_text,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc

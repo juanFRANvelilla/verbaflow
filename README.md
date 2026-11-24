@@ -10,8 +10,10 @@ Proyecto independiente de podioTest.
 |---------|-----|
 | `api/` | FastAPI, PostgreSQL, Whisper, Surplus |
 | `frontend/` | Angular (captura, biblioteca, repaso) |
-| `api/sql/` | SQL de creación de BD (homelab compartido) |
-| `k8s/` | Despliegue en el clúster |
+| `api/k8s/` | Helm backend |
+| `frontend/k8s/` | Helm frontend |
+
+BD: base **`verbaflow`** en el mismo Postgres que `finance_portfolio` / `surplus_provider` (mismo usuario). El DDL lo aplicas tú en DBeaver; no va en git.
 
 ## Desarrollo local
 
@@ -26,6 +28,13 @@ uvicorn app.main:app --reload --port 8090
 cd ../frontend
 npm install && npm start
 ```
+
+## Imágenes y CI
+
+- `ghcr.io/juanfranvelilla/verbaflow-api`
+- `ghcr.io/juanfranvelilla/verbaflow-frontend`
+
+Jenkins (Kaniko): `api/Jenkinsfile` y `frontend/Jenkinsfile`. Detalle K8s: [k8s/README.md](k8s/README.md).
 
 ## Repo
 

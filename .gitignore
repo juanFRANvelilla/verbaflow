@@ -15,6 +15,10 @@ build/
 .env.*
 !.env.example
 
+# DDL local (DBeaver / homelab; no versionar)
+api/sql/
+**/*.local.sql
+
 # Whisper cache
 api/.cache/
 api/models/

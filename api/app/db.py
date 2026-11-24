@@ -12,7 +12,7 @@ class Base(DeclarativeBase):
 
 def _engine():
     return create_async_engine(
-        get_settings().database_url,
+        get_settings().resolved_database_url,
         echo=get_settings().debug,
         pool_pre_ping=True,
     )

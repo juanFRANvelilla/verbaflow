@@ -44,8 +44,13 @@ def transcribe_audio_bytes(data: bytes, *, content_type: str | None = None) -> S
         segments, info = _model().transcribe(
             tmp.name,
             language="en",
-            vad_filter=True,
+            vad_filter=False,
             word_timestamps=False,
+            condition_on_previous_text=False,
+            compression_ratio_threshold=2.2,
+            log_prob_threshold=-0.8,
+            no_speech_threshold=0.45,
+            hallucination_silence_threshold=1.0,
         )
         seg_list = []
         texts: list[str] = []

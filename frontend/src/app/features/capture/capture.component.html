@@ -1,40 +1,121 @@
-<section class="capture">
-  <h1>Escuchar y traducir</h1>
-  <p class="hint">Pulsa para grabar una palabra o frase en inglés.</p>
-
-  <button
-    type="button"
-    class="record"
-    [class.recording]="recording"
-    [disabled]="loading()"
-    (click)="toggleRecord()"
+<main
+  class="vf-page capture"
+  [class.capture--has-result]="!!result()"
+  [class.capture--idle]="!result() && !recording && !loading()"
+>
+  <section
+    class="vf-card recorder-panel"
+    [class.recorder-panel--live]="recording"
+    [class.recorder-panel--compact]="!!result() && !recording"
   >
-    {{ recording ? 'Detener' : 'Grabar' }}
-  </button>
+    <div class="recorder-visual">
+      <button
+        type="button"
+        class="mic-btn"
+        [class.mic-btn--recording]="recording"
+        [disabled]="loading()"
+        (click)="recording ? finishRecord() : startRecord()"
+        [attr.aria-label]="recording ? 'Parar y traducir' : 'Empezar a escuchar'"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path
+            d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a1 1 0 0 0-1 1v1a6 6 0 0 0 5 5.91V20H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-2v-1.09A6 6 0 0 0 19 13v-1a1 1 0 0 0-1-1h-1Z"
+          />
+        </svg>
+      </button>
+      @if (recording) {
+        <p class="recorder-status">
+          <span class="dot dot--live"></span> Escuchando…
+        </p>
+      }
+    </div>
+
+    @if (recording) {
+      <div class="control-row">
+        <button type="button" class="btn btn-ghost" (click)="cancelRecord()">Cancelar</button>
+        <button type="button" class="btn btn-accent btn-block" [disabled]="loading()" (click)="finishRecord()">
+          Parar
+        </button>
+      </div>
+    } @else if (result()) {
+      <button type="button" class="btn btn-primary btn-block" [disabled]="loading()" (click)="startRecord()">
+        Nueva palabra
+      </button>
+    }
+  </section>
 
   @if (loading()) {
-    <p class="status">Procesando…</p>
+    <section class="vf-card busy-panel" role="status" aria-live="polite">
+      <div class="vf-status">
+        <span class="vf-spinner" aria-hidden="true"></span>
+        Traduciendo…
+      </div>
+      <button type="button" class="btn btn-ghost btn-block" (click)="cancelBusy()">Cancelar</button>
+    </section>
   }
+
   @if (error()) {
-    <p class="error">{{ error() }}</p>
+    <p class="vf-alert-error" role="alert">{{ error() }}</p>
   }
 
   @if (result(); as r) {
-    <article class="card">
-      <h2>{{ r.effective_en }}</h2>
-      <p class="stt">STT: {{ r.stt.best_text }}</p>
-      <p class="tr">{{ r.llm.translation_es }}</p>
+    <article class="vf-card result-card">
+      <label class="vf-label" for="capture-text">Texto captado (editable)</label>
+      <input
+        id="capture-text"
+        class="vf-input result-input"
+        type="text"
+        [ngModel]="editableText()"
+        (ngModelChange)="editableText.set($event)"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button
+        type="button"
+        class="btn btn-secondary btn-block translate-again"
+        [disabled]="loading() || !editableText().trim()"
+        (click)="refreshTranslation()"
+      >
+        Traducir de nuevo
+      </button>
+
+      @if (r.llm_ok && r.translation_source === 'dictionary') {
+        <p class="vf-alert-info" role="status">Traducción rápida (sin LLM)</p>
+      }
+      @if (r.translation_source === 'llm') {
+        <p class="vf-alert-info" role="status">Traducción vía IA</p>
+      }
+      @if (!r.llm_ok && r.llm_error) {
+        <p class="vf-alert-warn" role="status">{{ r.llm_error }}</p>
+      }
+
+      <div class="result-divider"></div>
+
+      <p class="vf-label">Traducción</p>
+      @if (r.llm_ok && r.llm.translation_es) {
+        <p class="result-es">{{ r.llm.translation_es }}</p>
+      } @else {
+        <p class="result-es result-es--muted">Sin traducción</p>
+      }
+
       @if (r.llm.example_en) {
-        <p class="ex"><em>{{ r.llm.example_en }}</em></p>
+        <blockquote class="result-example">
+          <span class="vf-label">Ejemplo</span>
+          {{ r.llm.example_en }}
+        </blockquote>
       }
-      @if (r.llm.alternatives.length) {
-        <ul class="alts">
-          @for (alt of r.llm.alternatives; track alt.en) {
-            <li>{{ alt.en }} — {{ alt.reason }}</li>
-          }
-        </ul>
-      }
-      <button type="button" class="save" [disabled]="loading()" (click)="save()">Guardar</button>
+
+      <div class="result-actions">
+        <button
+          type="button"
+          class="btn btn-save"
+          [disabled]="loading() || !r.llm_ok || !r.llm.translation_es || !editableText().trim()"
+          (click)="save()"
+        >
+          Guardar
+        </button>
+        <button type="button" class="btn btn-ghost" [disabled]="loading()" (click)="discard()">Descartar</button>
+      </div>
     </article>
   }
-</section>
+</main>

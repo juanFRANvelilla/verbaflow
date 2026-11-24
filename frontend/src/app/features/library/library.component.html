@@ -1,12 +1,31 @@
-<section class="library">
-  <h1>Biblioteca</h1>
-  <ul>
-    @for (item of items(); track item.id) {
-      <li>
-        <strong>{{ item.canonical_en }}</strong> — {{ item.translation_es }}
-      </li>
-    } @empty {
-      <li>Aún no hay palabras guardadas.</li>
-    }
-  </ul>
-</section>
+<main class="vf-page library">
+  <div class="library-header">
+    <div>
+      <p class="vf-label">Tu vocabulario</p>
+      <h2 class="library-title">Biblioteca</h2>
+    </div>
+    <span class="library-count">{{ items().length }} entradas</span>
+  </div>
+
+  @if (items().length === 0) {
+    <div class="library-empty vf-card vf-hint">
+      Aún no has guardado palabras. Graba algo en la pestaña Grabar y pulsa «Guardar en biblioteca».
+    </div>
+  } @else {
+    <ul class="entry-list">
+      @for (item of items(); track item.id) {
+        <li class="vf-card entry-item">
+          <div class="entry-top">
+            <span class="entry-lang">{{ item.language_code | uppercase }}</span>
+            <time class="entry-time">{{ item.text.length > 48 ? 'Frase' : 'Palabra' }}</time>
+          </div>
+          <p class="entry-en">{{ item.text }}</p>
+          <p class="entry-es">{{ item.translation }}</p>
+          @if (item.example_text) {
+            <p class="entry-ex">{{ item.example_text }}</p>
+          }
+        </li>
+      }
+    </ul>
+  }
+</main>

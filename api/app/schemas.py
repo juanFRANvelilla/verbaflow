@@ -1,10 +1,7 @@
 from datetime import datetime
-from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-
-from app.models import SourceKind, VocabKind
 
 
 class AlternativeCandidate(BaseModel):
@@ -15,7 +12,6 @@ class AlternativeCandidate(BaseModel):
 
 class LookupLlmResult(BaseModel):
     normalized_en: str
-    kind: VocabKind
     translation_es: str
     example_en: str = ""
     example_es: str | None = None
@@ -30,55 +26,61 @@ class SttResult(BaseModel):
 
 
 class LookupResponse(BaseModel):
-    lookup_id: UUID
+    language_code: str
     stt: SttResult
     llm: LookupLlmResult
-    effective_en: str
+    effective_text: str
+    llm_ok: bool = True
+    llm_error: str | None = None
+    stt_source: str = "whisper"
+    translation_source: str = Field(
+        default="none",
+        description="dictionary | llm | none",
+    )
 
 
-class LookupSelectBody(BaseModel):
+class LookupTextBody(BaseModel):
+    language_code: str = Field(min_length=2, max_length=16)
+    text: str = Field(min_length=1)
+    context_note: str | None = None
+    stt_source: str = Field(default="text", max_length=32)
+
+
+class LookupRefineBody(BaseModel):
+    language_code: str = Field(min_length=2, max_length=16)
     selected_text: str = Field(min_length=1)
 
 
-class SaveLookupBody(BaseModel):
-    source_id: UUID | None = None
-    tags: list[str] = Field(default_factory=list)
+class VocabularyEntryCreate(BaseModel):
+    language_code: str = Field(min_length=2, max_length=16)
+    text: str = Field(min_length=1)
+    translation: str = Field(min_length=1)
+    example_text: str | None = None
 
 
-class VocabItemOut(BaseModel):
+class VocabularyEntryOut(BaseModel):
     id: UUID
-    canonical_en: str
-    kind: VocabKind
-    translation_es: str
-    example_en: str | None
-    example_es: str | None
+    language_code: str
+    text: str
+    translation: str
+    example_text: str | None
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
 
-class ReviewRating(int, Enum):
-    again = 1
-    hard = 2
-    good = 3
-    easy = 4
-
-
-class ReviewCardOut(BaseModel):
-    card_id: UUID
-    vocab_id: UUID
-    canonical_en: str
-    translation_es: str | None = None
-    example_en: str | None = None
-    due: datetime
+class LanguageOut(BaseModel):
+    code: str
+    name: str
+    enabled: bool
 
     model_config = {"from_attributes": True}
 
 
-class ReviewAnswerBody(BaseModel):
-    rating: ReviewRating
+class UserOut(BaseModel):
+    id: UUID
+    email: str | None
+    display_name: str | None
+    created_at: datetime
 
-
-class SourceCreate(BaseModel):
-    kind: SourceKind
-    name: str = Field(min_length=1, max_length=500)
+    model_config = {"from_attributes": True}

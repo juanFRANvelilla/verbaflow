@@ -3,9 +3,18 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface Language {
+  code: string;
+  name: string;
+  enabled: boolean;
+}
+
 export interface LookupResponse {
-  lookup_id: string;
-  effective_en: string;
+  language_code: string;
+  effective_text: string;
+  llm_ok: boolean;
+  llm_error?: string | null;
+  translation_source?: 'dictionary' | 'llm' | 'none';
   stt: { best_text: string };
   llm: {
     normalized_en: string;
@@ -16,11 +25,19 @@ export interface LookupResponse {
   };
 }
 
-export interface VocabItem {
+export interface VocabularyEntry {
   id: string;
-  canonical_en: string;
-  translation_es: string;
-  example_en: string | null;
+  language_code: string;
+  text: string;
+  translation: string;
+  example_text: string | null;
+}
+
+export interface SaveEntryPayload {
+  language_code: string;
+  text: string;
+  translation: string;
+  example_text?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -28,20 +45,38 @@ export class VerbaflowApiService {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiBaseUrl;
 
-  lookup(audio: Blob, contextNote?: string): Observable<LookupResponse> {
+  listLanguages(): Observable<Language[]> {
+    return this.http.get<Language[]>(`${this.base}/api/languages`);
+  }
+
+  lookupText(
+    text: string,
+    languageCode: string,
+    sttSource: 'browser' | 'manual' = 'browser',
+  ): Observable<LookupResponse> {
+    return this.http.post<LookupResponse>(`${this.base}/api/lookup/text`, {
+      language_code: languageCode,
+      text,
+      stt_source: sttSource,
+    });
+  }
+
+  lookup(audio: Blob, languageCode: string, contextNote?: string): Observable<LookupResponse> {
     const form = new FormData();
     form.append('audio', audio, 'clip.webm');
+    form.append('language_code', languageCode);
     if (contextNote?.trim()) {
       form.append('context_note', contextNote.trim());
     }
     return this.http.post<LookupResponse>(`${this.base}/api/lookup`, form);
   }
 
-  saveLookup(lookupId: string, tags: string[] = []): Observable<VocabItem> {
-    return this.http.post<VocabItem>(`${this.base}/api/lookup/${lookupId}/save`, { tags });
+  saveEntry(payload: SaveEntryPayload): Observable<VocabularyEntry> {
+    return this.http.post<VocabularyEntry>(`${this.base}/api/entries`, payload);
   }
 
-  listVocab(): Observable<VocabItem[]> {
-    return this.http.get<VocabItem[]>(`${this.base}/api/vocab`);
+  listEntries(languageCode?: string): Observable<VocabularyEntry[]> {
+    const q = languageCode ? `?language_code=${encodeURIComponent(languageCode)}` : '';
+    return this.http.get<VocabularyEntry[]>(`${this.base}/api/entries${q}`);
   }
 }

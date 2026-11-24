@@ -8,5 +8,9 @@ asyncpg>=0.30.0
 alembic>=1.14.0
 python-dotenv>=1.0.1
 openai>=1.55.0
-fsrs>=4.0.0
-faster-whisper>=1.1.0
+psycopg2-binary>=2.9.10
+requests>=2.32.0
+deep-translator>=1.11.4
+faster-whisper>=1.1.0,<1.3
+# PyAV 19 rompe faster-whisper 1.2.1 (metadata_errors); ver SYSTRAN/faster-whisper#1589
+av>=12,<19

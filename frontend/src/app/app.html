@@ -1,10 +1,64 @@
-<header class="shell">
-  <nav>
-    <a routerLink="/capture" routerLinkActive="active">Grabar</a>
-    <a routerLink="/library" routerLinkActive="active">Biblioteca</a>
-    <a routerLink="/review" routerLinkActive="active">Repaso</a>
-  </nav>
-</header>
-<main>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="app-header-top">
+        <div>
+          <span class="app-brand-label">Verbaflow</span>
+          <h1 class="app-brand-title">Vocabulario por voz</h1>
+        </div>
+        <label class="app-lang">
+          <span class="app-lang-label">Idioma</span>
+          <select
+            class="app-lang-select"
+            [ngModel]="selectedLanguage()"
+            (ngModelChange)="onLanguageChange($event)"
+          >
+            @for (lang of languageList(); track lang.code) {
+              <option [value]="lang.code">{{ lang.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <nav class="app-view-switcher" aria-label="Secciones">
+        <a
+          routerLink="/capture"
+          routerLinkActive="app-nav-btn--active-capture"
+          class="app-nav-btn"
+          [routerLinkActiveOptions]="{ exact: false }"
+        >
+          <svg class="app-nav-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a1 1 0 0 0-1 1v1a6 6 0 0 0 5 5.91V20H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-2v-1.09A6 6 0 0 0 19 13v-1a1 1 0 0 0-1-1h-1Z"
+            />
+          </svg>
+          <span>Grabar</span>
+        </a>
+        <a
+          routerLink="/library"
+          routerLinkActive="app-nav-btn--active-library"
+          class="app-nav-btn"
+        >
+          <svg class="app-nav-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              d="M6 4h9a2 2 0 0 1 2 2v14.5a1.5 1.5 0 0 0-2.4-1.2L12 17.5l-2.6 1.8A1.5 1.5 0 0 0 7 18.5V6a2 2 0 0 0-2-2H5a2 2 0 0 1 2-2Zm2 2v11.08l1.6-1.11a1.5 1.5 0 0 1 1.7 0L15 17.08V6H8Z"
+            />
+          </svg>
+          <span>Biblioteca</span>
+        </a>
+        <a routerLink="/review" routerLinkActive="app-nav-btn--active-review" class="app-nav-btn">
+          <svg class="app-nav-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              fill-rule="evenodd"
+              d="M12 2.25c-2.429 0-4.817.178-7.152.521a.75.75 0 0 0-.584.879 49.12 49.12 0 0 0 7.736 3.102 49.12 49.12 0 0 0 7.736-3.102.75.75 0 0 0-.584-.879A106.86 106.86 0 0 0 12 2.25ZM12 6.75a.75.75 0 0 1 .75.75v2.25h2.25a.75.75 0 0 1 0 1.5H12.75v2.25a.75.75 0 0 1-1.5 0V11.25H9a.75.75 0 0 1 0-1.5h2.25V7.5A.75.75 0 0 1 12 6.75Z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <span>Repaso</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
   <router-outlet />
-</main>
+</div>

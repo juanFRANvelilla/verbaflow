@@ -1,0 +1,43 @@
+namespace: pre-verbaflow-back
+replicaCount: 1
+registry: ghcr.io/juanfranvelilla/verbaflow-api
+image:
+  tag: ""
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+probes:
+  path: /api/health
+extraEnv:
+  - name: "TZ"
+    value: "UTC"
+  - name: "CORS_ORIGINS"
+    value: "https://pre.verbaflow.juanfranciscoperez.es"
+extraEnvFrom:
+  - secretRef:
+      name: backend-secrets
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: 250m
+  limits:
+    memory: "2Gi"
+    cpu: "2000m"
+ingress:
+  enabled: false
+gatewayRoute:
+  enabled: true
+  host: "pre.verbaflow.juanfranciscoperez.es"
+  path: /api
+  extraPaths:
+    - /health
+  bodySize: 25Mi
+gateway:
+  enabled: true
+  name: lab
+  namespace: jenkins
+  sectionName: https-verbaflow-pre
+database:
+  host: "postgres-service.postgres.svc.cluster.local"
