@@ -15,6 +15,16 @@ Mismo patrón que **surplus-satellite**: un solo entorno, `values-pre.yaml` para
 
 Gateway `lab`: listener `https-verbaflow` (TLS `verbaflow-gateway-tls`).
 
+## RBAC para Jenkins (obligatorio una vez)
+
+Sin esto, `helm upgrade` falla con *cannot list resource "secrets" in namespace "verbaflow"*:
+
+```bash
+kubectl apply -f k8s/bootstrap/jenkins-rolebinding.yaml
+```
+
+(o el mismo `rolebinding` que en [jenkins-pipeline/README](https://github.com/juanFRANvelilla/jenkins-pipeline): `ClusterRole/edit` para `jenkins:jenkins-deployer`).
+
 ## Secrets
 
 En **`verbaflow`**:
