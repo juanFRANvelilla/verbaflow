@@ -1,4 +1,4 @@
-namespace: verbaflow-back
+namespace: verbaflow
 replicaCount: 1
 registry: ghcr.io/juanfranvelilla/verbaflow-api
 image:

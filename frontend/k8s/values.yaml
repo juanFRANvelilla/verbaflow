@@ -1,4 +1,4 @@
-namespace: verbaflow-front
+namespace: verbaflow
 replicaCount: 1
 registry: ghcr.io/juanfranvelilla/verbaflow-frontend
 image:
