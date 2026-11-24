@@ -1,0 +1,40 @@
+<section class="capture">
+  <h1>Escuchar y traducir</h1>
+  <p class="hint">Pulsa para grabar una palabra o frase en inglés.</p>
+
+  <button
+    type="button"
+    class="record"
+    [class.recording]="recording"
+    [disabled]="loading()"
+    (click)="toggleRecord()"
+  >
+    {{ recording ? 'Detener' : 'Grabar' }}
+  </button>
+
+  @if (loading()) {
+    <p class="status">Procesando…</p>
+  }
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (result(); as r) {
+    <article class="card">
+      <h2>{{ r.effective_en }}</h2>
+      <p class="stt">STT: {{ r.stt.best_text }}</p>
+      <p class="tr">{{ r.llm.translation_es }}</p>
+      @if (r.llm.example_en) {
+        <p class="ex"><em>{{ r.llm.example_en }}</em></p>
+      }
+      @if (r.llm.alternatives.length) {
+        <ul class="alts">
+          @for (alt of r.llm.alternatives; track alt.en) {
+            <li>{{ alt.en }} — {{ alt.reason }}</li>
+          }
+        </ul>
+      }
+      <button type="button" class="save" [disabled]="loading()" (click)="save()">Guardar</button>
+    </article>
+  }
+</section>

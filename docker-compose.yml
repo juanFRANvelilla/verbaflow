@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: verbaflow
+      POSTGRES_PASSWORD: verbaflow
+      POSTGRES_DB: verbaflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - verbaflow_pg:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./api
+    ports:
+      - "8090:8090"
+    env_file:
+      - ./api/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://verbaflow:verbaflow@postgres:5432/verbaflow
+    depends_on:
+      - postgres
+
+volumes:
+  verbaflow_pg:
