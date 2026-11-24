@@ -21,9 +21,10 @@ Sin esto, `helm upgrade` falla con *cannot list resource "secrets" in namespace 
 
 ```bash
 kubectl apply -f k8s/bootstrap/jenkins-rolebinding.yaml
+kubectl apply -f k8s/bootstrap/jenkins-gateway-rbac.yaml
 ```
 
-(o el mismo `rolebinding` que en [jenkins-pipeline/README](https://github.com/juanFRANvelilla/jenkins-pipeline): `ClusterRole/edit` para `jenkins:jenkins-deployer`).
+`edit` no basta: Helm necesita crear `HTTPRoute`, `Certificate`, etc. (`jenkins-gateway-rbac.yaml`).
 
 ## Secrets
 

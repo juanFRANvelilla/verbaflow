@@ -1,0 +1,35 @@
+# El ClusterRole "edit" no incluye Gateway API ni cert-manager.
+# Necesario para que Helm cree HTTPRoute, Certificate, etc.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-gateway-resources
+  namespace: verbaflow
+rules:
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources:
+      - httproutes
+      - referencegrants
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["cert-manager.io"]
+    resources:
+      - certificates
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["gateway.envoyproxy.io"]
+    resources:
+      - backendtrafficpolicies
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-deployer-gateway
+  namespace: verbaflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jenkins-gateway-resources
+subjects:
+  - kind: ServiceAccount
+    name: jenkins-deployer
+    namespace: jenkins
