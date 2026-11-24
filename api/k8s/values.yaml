@@ -1,4 +1,4 @@
-namespace: pre-verbaflow-back
+namespace: verbaflow-back
 replicaCount: 1
 registry: ghcr.io/juanfranvelilla/verbaflow-api
 image:
@@ -14,7 +14,7 @@ extraEnv:
   - name: "TZ"
     value: "UTC"
   - name: "CORS_ORIGINS"
-    value: "https://pre.verbaflow.juanfranciscoperez.es"
+    value: "https://verbaflow.juanfranciscoperez.es"
 extraEnvFrom:
   - secretRef:
       name: backend-secrets
@@ -29,7 +29,7 @@ ingress:
   enabled: false
 gatewayRoute:
   enabled: true
-  host: "pre.verbaflow.juanfranciscoperez.es"
+  host: "verbaflow.juanfranciscoperez.es"
   path: /api
   extraPaths:
     - /health
@@ -38,6 +38,6 @@ gateway:
   enabled: true
   name: lab
   namespace: jenkins
-  sectionName: https-verbaflow-pre
+  sectionName: https-verbaflow
 database:
   host: "postgres-service.postgres.svc.cluster.local"

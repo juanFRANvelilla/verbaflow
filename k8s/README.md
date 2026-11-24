@@ -1,44 +1,46 @@
 # Verbaflow — Kubernetes
 
-Charts Helm en `api/k8s` (backend) y `frontend/k8s`, mismo patrón que `finance_portfolio`.
+Un solo entorno (sin PRO ni Argo). Charts en `api/k8s` y `frontend/k8s`.
 
-## Hosts (Gateway)
+## Namespaces
 
-| Entorno | Host |
-|---------|------|
-| PRE | `https://pre.verbaflow.juanfranciscoperez.es` |
-| PRO | `https://pro.verbaflow.juanfranciscoperez.es` |
+| Componente | Namespace |
+|------------|-----------|
+| API | `verbaflow-back` |
+| Frontend | `verbaflow-front` |
 
-Rutas:
+## URL pública
 
-- `/` → frontend (`front`)
-- `/api` y `/health` → API (`back`)
+`https://verbaflow.juanfranciscoperez.es`
 
-## Secrets (por namespace)
+- `/` → frontend
+- `/api`, `/health` → API
 
-En `pre-verbaflow-back` y `pro-verbaflow-back`, crea `backend-secrets` con al menos:
+Gateway `lab`: listener `https-verbaflow` (certificado `verbaflow-gateway-tls` en `verbaflow-front`).
 
-- `DATABASE_URL` — `postgresql+asyncpg://…/verbaflow_pre` o `verbaflow_pro`
+## Secrets
+
+En **`verbaflow-back`**, secret `backend-secrets`:
+
+- `DATABASE_URL` → BD `verbaflow` (o el nombre que uses en Postgres)
 - `SURPLUSINTELLIGENCE_API_KEY`
-- `SURPLUS_DATABASE_URL` (satélite / favoritos)
-- Opcional: `API_KEY`, claves Whisper/Surplus según `api/env.example`
+- `SURPLUS_DATABASE_URL`
+- Resto según `api/env.example`
 
-En cada namespace del backend, `ghcr-secret` para tirar imágenes de GHCR.
+En **`verbaflow-back`** y **`verbaflow-front`**: `ghcr-secret` para GHCR.
 
-## Despliegue manual
+## Despliegue (Helm directo)
 
 ```bash
-# API PRE
 helm upgrade --install back ./api/k8s \
-  -n pre-verbaflow-back --create-namespace \
-  -f api/k8s/values-pre.yaml \
+  -n verbaflow-back --create-namespace \
+  -f api/k8s/values.yaml \
   --set image.tag=v123
 
-# Front PRE
 helm upgrade --install front ./frontend/k8s \
-  -n pre-verbaflow-front --create-namespace \
-  -f frontend/k8s/values-pre.yaml \
+  -n verbaflow-front --create-namespace \
+  -f frontend/k8s/values.yaml \
   --set image.tag=v123
 ```
 
-Añade en el Gateway `lab` los listeners `https-verbaflow-pre` y `https-verbaflow-pro` (como `https-finance-pre`).
+Los Jenkins de Kaniko solo construyen y suben imagen; el deploy lo haces tú con estos comandos (o un job Jenkins aparte sin publicar a helm-charts/Argo).

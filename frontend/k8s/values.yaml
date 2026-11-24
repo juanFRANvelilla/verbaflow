@@ -1,4 +1,4 @@
-namespace: pro-verbaflow-front
+namespace: verbaflow-front
 replicaCount: 1
 registry: ghcr.io/juanfranvelilla/verbaflow-frontend
 image:
@@ -35,12 +35,12 @@ ingress:
   enabled: false
 gatewayRoute:
   enabled: true
-  host: "pro.verbaflow.juanfranciscoperez.es"
+  host: "verbaflow.juanfranciscoperez.es"
   path: "/"
 gateway:
   enabled: true
   name: lab
   namespace: jenkins
-  sectionName: https-verbaflow-pro
+  sectionName: https-verbaflow
   issuer: letsencrypt-ovh-prod
-  tlsSecret: verbaflow-pro-gateway-tls
+  tlsSecret: verbaflow-gateway-tls
