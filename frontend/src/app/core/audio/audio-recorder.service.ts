@@ -11,7 +11,8 @@ export class AudioRecorderService {
   async start(): Promise<void> {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.chunks = [];
-    this.mediaRecorder = new MediaRecorder(stream, { mimeType: this.preferredMime() });
+    const mime = this.preferredMime();
+    this.mediaRecorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
     this.mediaRecorder.ondataavailable = (ev) => {
       if (ev.data.size > 0) {
         this.chunks.push(ev.data);

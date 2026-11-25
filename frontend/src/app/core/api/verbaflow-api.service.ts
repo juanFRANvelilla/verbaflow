@@ -63,7 +63,12 @@ export class VerbaflowApiService {
 
   lookup(audio: Blob, languageCode: string, contextNote?: string): Observable<LookupResponse> {
     const form = new FormData();
-    form.append('audio', audio, 'clip.webm');
+    const type = audio.type.toLowerCase();
+    const filename =
+      type.includes('mp4') || type.includes('m4a') || type.includes('aac') || type.includes('mpeg')
+        ? 'clip.m4a'
+        : 'clip.webm';
+    form.append('audio', audio, filename);
     form.append('language_code', languageCode);
     if (contextNote?.trim()) {
       form.append('context_note', contextNote.trim());

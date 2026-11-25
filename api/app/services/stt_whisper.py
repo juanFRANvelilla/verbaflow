@@ -33,10 +33,14 @@ def transcribe_audio_bytes(data: bytes, *, content_type: str | None = None) -> S
 
     s = get_settings()
     suffix = ".webm"
-    if content_type and "ogg" in content_type:
-        suffix = ".ogg"
-    elif content_type and "wav" in content_type:
-        suffix = ".wav"
+    if content_type:
+        ct = content_type.lower()
+        if "ogg" in ct:
+            suffix = ".ogg"
+        elif "wav" in ct:
+            suffix = ".wav"
+        elif "mp4" in ct or "m4a" in ct or "aac" in ct or "mpeg" in ct:
+            suffix = ".m4a"
 
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=True) as tmp:
         tmp.write(data)

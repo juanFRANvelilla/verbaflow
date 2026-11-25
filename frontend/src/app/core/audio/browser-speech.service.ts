@@ -48,6 +48,11 @@ export class BrowserSpeechService {
     return typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   }
 
+  /** En iOS la Web Speech API falla a menudo (PWA, Siri off, Chrome); usar STT en servidor. */
+  shouldUseServerStt(): boolean {
+    return this.isIosDevice();
+  }
+
   isIosDevice(): boolean {
     if (typeof navigator === 'undefined') {
       return false;
@@ -283,7 +288,9 @@ export class BrowserSpeechService {
       return 'No se detectó voz';
     }
     if (code === 'service-not-allowed') {
-      return 'Reconocimiento de voz no disponible (en iPhone usa Safari, no el navegador dentro de otra app).';
+      return this.isIosDevice()
+        ? 'El dictado del navegador no está disponible aquí. Actualiza la app: en iPhone usamos transcripción en el servidor.'
+        : 'Reconocimiento de voz no disponible. Usa Safari/Chrome normales (no navegador dentro de otra app).';
     }
     return `Error de voz: ${code}`;
   }
