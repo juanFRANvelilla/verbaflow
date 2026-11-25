@@ -31,9 +31,12 @@ export class CaptureComponent {
   }
 
   async startRecord(): Promise<void> {
+    if (this.loading() || this.recording) {
+      return;
+    }
     this.error.set(null);
     try {
-      this.browserSpeech.start(this.languages.selectedCode());
+      await this.browserSpeech.start(this.languages.selectedCode());
     } catch (e: unknown) {
       this.error.set(e instanceof Error ? e.message : 'No se pudo acceder al micrófono');
     }

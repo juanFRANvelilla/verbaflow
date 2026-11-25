@@ -13,6 +13,7 @@ type SpeechRecognitionLike = {
   start: () => void;
   stop: () => void;
   abort: () => void;
+  onstart: (() => void) | null;
   onresult: ((ev: { results: { length: number; [index: number]: { isFinal?: boolean; [i: number]: { transcript?: string } } } }) => void) | null;
   onerror: ((ev: { error: string }) => void) | null;
   onend: (() => void) | null;
@@ -37,11 +38,25 @@ export class BrowserSpeechService {
   private settled = false;
   private currentTranscript = '';
   private stopWaitTimer: ReturnType<typeof setTimeout> | null = null;
+  private iosMode = false;
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private bootstrapping = false;
 
   private static readonly STOP_WAIT_MS = 12_000;
 
   isSupported(): boolean {
     return typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  isIosDevice(): boolean {
+    if (typeof navigator === 'undefined') {
+      return false;
+    }
+    const ua = navigator.userAgent;
+    const iOS = /iPad|iPhone|iPod/.test(ua);
+    const iPadOs =
+      navigator.platform === 'MacIntel' && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1;
+    return iOS || iPadOs;
   }
 
   langForCode(code: string): string {
@@ -52,67 +67,132 @@ export class BrowserSpeechService {
     return map[code] ?? 'en-US';
   }
 
-  start(languageCode: string): void {
+  async start(languageCode: string): Promise<void> {
     if (!this.isSupported()) {
       throw new Error('Tu navegador no soporta reconocimiento de voz.');
     }
-    this.recognition?.abort();
+    if (this.listening() || this.bootstrapping) {
+      return;
+    }
+    this.bootstrapping = true;
+
+    if (this.isIosDevice() && typeof navigator.mediaDevices?.getUserMedia === 'function') {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        for (const track of stream.getTracks()) {
+          track.stop();
+        }
+      } catch {
+        this.bootstrapping = false;
+        throw new Error(
+          'Permiso de micrófono denegado. En iPhone: Ajustes > Safari > Micrófono (o la web de Verbaflow) y vuelve a intentarlo.',
+        );
+      }
+    }
+
+    this.cancel();
     this.settled = false;
     this.pending = null;
     this.currentTranscript = '';
+    this.iosMode = this.isIosDevice();
 
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition!;
     const recognition = new Recognition();
     this.recognition = recognition;
-    recognition.continuous = false;
+    recognition.continuous = this.iosMode;
     recognition.interimResults = true;
-    recognition.maxAlternatives = 3;
+    recognition.maxAlternatives = this.iosMode ? 1 : 3;
     recognition.lang = this.langForCode(languageCode);
 
-    recognition.onresult = (event) => {
-      let transcript = '';
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0]?.transcript ?? '';
-      }
-      this.currentTranscript = transcript.trim();
-    };
+    return new Promise<void>((resolve, reject) => {
+      let started = false;
 
-    recognition.onerror = (event) => {
-      if (this.settled) {
-        return;
-      }
-      this.settled = true;
-      this.clearStopWaitTimer();
-      this.listening.set(false);
-      const msg =
-        event.error === 'not-allowed'
-          ? 'Permiso de micrófono o Dictado denegado (Safari: Ajustes > Teclado > Dictado)'
-          : event.error === 'no-speech'
-            ? 'No se detectó voz'
-            : `Error de voz: ${event.error}`;
-      this.pending?.reject(new Error(msg));
-      this.pending = null;
-    };
+      const endBootstrap = () => {
+        this.bootstrapping = false;
+      };
 
-    recognition.onend = () => {
-      this.clearStopWaitTimer();
-      this.listening.set(false);
-      if (this.settled || !this.pending) {
-        return;
-      }
-      this.settled = true;
-      if (this.currentTranscript) {
-        this.pending.resolve({ bestText: this.currentTranscript, alternatives: [] });
-      } else {
-        this.pending.reject(
-          new Error('No se detectó voz. En Safari activa Dictado y habla antes de pulsar Parar.'),
-        );
-      }
-      this.pending = null;
-    };
+      const failStart = (msg: string) => {
+        if (this.settled) {
+          endBootstrap();
+          return;
+        }
+        this.settled = true;
+        this.clearStopWaitTimer();
+        this.clearRestartTimer();
+        this.listening.set(false);
+        this.recognition?.abort();
+        endBootstrap();
+        if (this.pending) {
+          this.pending.reject(new Error(msg));
+          this.pending = null;
+        } else if (!started) {
+          reject(new Error(msg));
+        }
+      };
 
-    this.listening.set(true);
-    recognition.start();
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0]?.transcript ?? '';
+        }
+        this.currentTranscript = transcript.trim();
+      };
+
+      recognition.onstart = () => {
+        started = true;
+        this.listening.set(true);
+        endBootstrap();
+        resolve();
+      };
+
+      recognition.onerror = (event) => {
+        if (this.settled || event.error === 'aborted') {
+          return;
+        }
+        if (this.iosMode && (event.error === 'no-speech' || event.error === 'no-match') && !this.pending) {
+          return;
+        }
+        failStart(this.errorMessage(event.error));
+      };
+
+      recognition.onend = () => {
+        this.clearStopWaitTimer();
+        if (this.settled) {
+          this.listening.set(false);
+          return;
+        }
+
+        if (!this.pending) {
+          if (this.iosMode && this.recognition) {
+            this.scheduleIosRestart();
+            return;
+          }
+          this.listening.set(false);
+          return;
+        }
+
+        this.settled = true;
+        this.listening.set(false);
+        if (this.currentTranscript) {
+          this.pending.resolve({ bestText: this.currentTranscript, alternatives: [] });
+        } else {
+          this.pending.reject(
+            new Error(
+              this.iosMode
+                ? 'No se detectó voz. Pulsa Parar después de hablar la palabra.'
+                : 'No se detectó voz. Habla antes de pulsar Parar.',
+            ),
+          );
+        }
+        this.pending = null;
+      };
+
+      try {
+        recognition.start();
+      } catch (e: unknown) {
+        failStart(e instanceof Error ? e.message : 'No se pudo iniciar el micrófono');
+      }
+    });
   }
 
   stop(): Promise<SpeechListenResult> {
@@ -120,6 +200,7 @@ export class BrowserSpeechService {
     if (!recognition) {
       return Promise.reject(new Error('No hay escucha activa'));
     }
+    this.clearRestartTimer();
     return new Promise((resolve, reject) => {
       this.pending = { resolve, reject };
       this.stopWaitTimer = setTimeout(() => {
@@ -138,12 +219,17 @@ export class BrowserSpeechService {
         this.pending = null;
         this.stopWaitTimer = null;
       }, BrowserSpeechService.STOP_WAIT_MS);
-      recognition.stop();
+      try {
+        recognition.stop();
+      } catch {
+        recognition.abort();
+      }
     });
   }
 
   cancel(): void {
     this.clearStopWaitTimer();
+    this.clearRestartTimer();
     if (!this.settled && this.pending) {
       this.settled = true;
       this.pending.reject(new Error('Cancelado'));
@@ -155,6 +241,29 @@ export class BrowserSpeechService {
     this.recognition?.abort();
     this.recognition = null;
     this.listening.set(false);
+    this.bootstrapping = false;
+  }
+
+  private scheduleIosRestart(): void {
+    this.clearRestartTimer();
+    this.restartTimer = setTimeout(() => {
+      if (this.settled || this.pending || !this.recognition) {
+        return;
+      }
+      try {
+        this.recognition.start();
+      } catch {
+        this.clearRestartTimer();
+        this.restartTimer = setTimeout(() => this.scheduleIosRestart(), 120);
+      }
+    }, 80);
+  }
+
+  private clearRestartTimer(): void {
+    if (this.restartTimer !== null) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
   }
 
   private clearStopWaitTimer(): void {
@@ -162,5 +271,20 @@ export class BrowserSpeechService {
       clearTimeout(this.stopWaitTimer);
       this.stopWaitTimer = null;
     }
+  }
+
+  private errorMessage(code: string): string {
+    if (code === 'not-allowed') {
+      return this.isIosDevice()
+        ? 'Micrófono o reconocimiento de voz no permitido. Revisa Ajustes > Safari y el permiso de micrófono para esta web.'
+        : 'Permiso de micrófono denegado';
+    }
+    if (code === 'no-speech') {
+      return 'No se detectó voz';
+    }
+    if (code === 'service-not-allowed') {
+      return 'Reconocimiento de voz no disponible (en iPhone usa Safari, no el navegador dentro de otra app).';
+    }
+    return `Error de voz: ${code}`;
   }
 }
