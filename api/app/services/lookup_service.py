@@ -130,7 +130,11 @@ async def run_lookup(
     await ensure_language(db, language_code)
 
     try:
-        stt: SttResult = transcribe_audio_bytes(audio, content_type=content_type)
+        stt: SttResult = transcribe_audio_bytes(
+            audio,
+            content_type=content_type,
+            language=language_code.strip().lower(),
+        )
     except SttError as exc:
         raise ValueError(str(exc)) from exc
 

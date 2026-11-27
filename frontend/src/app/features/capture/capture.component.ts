@@ -5,7 +5,6 @@ import { EmptyError, firstValueFrom, Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LookupResponse, VerbaflowApiService } from '../../core/api/verbaflow-api.service';
 import { AudioRecorderService } from '../../core/audio/audio-recorder.service';
-import { BrowserSpeechService } from '../../core/audio/browser-speech.service';
 import { LanguageSelectionService } from '../../core/language/language-selection.service';
 
 @Component({
@@ -16,7 +15,6 @@ import { LanguageSelectionService } from '../../core/language/language-selection
   styleUrl: './capture.component.scss',
 })
 export class CaptureComponent {
-  private readonly browserSpeech = inject(BrowserSpeechService);
   private readonly audioRecorder = inject(AudioRecorderService);
   private readonly api = inject(VerbaflowApiService);
   private readonly languages = inject(LanguageSelectionService);
@@ -29,11 +27,7 @@ export class CaptureComponent {
   private requestCancel: Subject<void> | null = null;
 
   get recording() {
-    return this.serverStt() ? this.audioRecorder.recording() : this.browserSpeech.listening();
-  }
-
-  private serverStt(): boolean {
-    return this.browserSpeech.shouldUseServerStt();
+    return this.audioRecorder.recording();
   }
 
   async startRecord(): Promise<void> {
@@ -42,31 +36,19 @@ export class CaptureComponent {
     }
     this.error.set(null);
     try {
-      if (this.serverStt()) {
-        await this.audioRecorder.start();
-      } else {
-        await this.browserSpeech.start(this.languages.selectedCode());
-      }
+      await this.audioRecorder.start();
     } catch (e: unknown) {
       this.error.set(e instanceof Error ? e.message : 'No se pudo acceder al micrófono');
     }
   }
 
   cancelRecord(): void {
-    if (this.serverStt()) {
-      this.audioRecorder.cancel();
-    } else {
-      this.browserSpeech.cancel();
-    }
+    this.audioRecorder.cancel();
   }
 
   cancelBusy(): void {
     this.endCancellableRequest();
-    if (this.serverStt()) {
-      this.audioRecorder.cancel();
-    } else {
-      this.browserSpeech.cancel();
-    }
+    this.audioRecorder.cancel();
     this.loading.set(false);
   }
 
@@ -78,25 +60,16 @@ export class CaptureComponent {
     this.error.set(null);
     this.beginCancellableRequest();
     try {
-      if (this.serverStt()) {
-        const blob = await this.audioRecorder.stop();
-        if (!this.requestCancel) {
-          return;
-        }
-        const res = await this.awaitCancellable(this.api.lookup(blob, this.languages.selectedCode()));
-        this.editableText.set(res.stt.best_text);
-        this.result.set(res);
-      } else {
-        const speech = await this.browserSpeech.stop();
-        if (!this.requestCancel) {
-          return;
-        }
-        this.editableText.set(speech.bestText);
-        const res = await this.awaitCancellable(
-          this.api.lookupText(speech.bestText, this.languages.selectedCode(), 'browser'),
-        );
-        this.result.set(res);
+      const blob = await this.audioRecorder.stop();
+      if (!blob.size) {
+        throw new Error('No se grabó audio. Mantén el micrófono un momento y vuelve a intentar.');
       }
+      if (!this.requestCancel) {
+        return;
+      }
+      const res = await this.awaitCancellable(this.api.lookup(blob, this.languages.selectedCode()));
+      this.editableText.set(res.stt.best_text);
+      this.result.set(res);
     } catch (e: unknown) {
       if (!this.isCancelledError(e)) {
         this.error.set(this.formatError(e));

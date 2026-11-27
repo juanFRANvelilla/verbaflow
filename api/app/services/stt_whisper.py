@@ -27,7 +27,12 @@ def _model() -> WhisperModel:
     return WhisperModel(s.whisper_model, device=s.whisper_device, compute_type=s.whisper_compute_type)
 
 
-def transcribe_audio_bytes(data: bytes, *, content_type: str | None = None) -> SttResult:
+def transcribe_audio_bytes(
+    data: bytes,
+    *,
+    content_type: str | None = None,
+    language: str = "en",
+) -> SttResult:
     if not data:
         raise SttError("Audio vacío")
 
@@ -45,16 +50,23 @@ def transcribe_audio_bytes(data: bytes, *, content_type: str | None = None) -> S
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=True) as tmp:
         tmp.write(data)
         tmp.flush()
+        lang = (language or "en").strip().lower()[:2]
+        if lang not in ("en", "es"):
+            lang = "en"
+
         segments, info = _model().transcribe(
             tmp.name,
-            language="en",
-            vad_filter=False,
+            language=lang,
+            task="transcribe",
+            vad_filter=True,
             word_timestamps=False,
             condition_on_previous_text=False,
-            compression_ratio_threshold=2.2,
-            log_prob_threshold=-0.8,
-            no_speech_threshold=0.45,
-            hallucination_silence_threshold=1.0,
+            beam_size=5,
+            compression_ratio_threshold=2.4,
+            log_prob_threshold=-1.0,
+            no_speech_threshold=0.5,
+            hallucination_silence_threshold=0.8,
+            initial_prompt="Single English vocabulary word or short phrase.",
         )
         seg_list = []
         texts: list[str] = []

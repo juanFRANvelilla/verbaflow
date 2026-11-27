@@ -9,7 +9,13 @@ export class AudioRecorderService {
   private chunks: BlobPart[] = [];
 
   async start(): Promise<void> {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
     this.chunks = [];
     const mime = this.preferredMime();
     this.mediaRecorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
@@ -18,7 +24,7 @@ export class AudioRecorderService {
         this.chunks.push(ev.data);
       }
     };
-    this.mediaRecorder.start();
+    this.mediaRecorder.start(250);
     this.recording.set(true);
     this.paused.set(false);
   }

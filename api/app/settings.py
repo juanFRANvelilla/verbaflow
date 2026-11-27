@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     surplus_satellite_pick_max_attempts: int = 4
     surplus_satellite_model_retries: int = 5
 
-    whisper_model: str = "base.en"
+    whisper_model: str = "small.en"
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
     whisper_max_audio_seconds: int = 30
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     lookup_llm_max_tokens: int = 512
     lookup_quick_translate_enabled: bool = True
     lookup_dictionary_max_words: int = 6
-    lookup_llm_enabled: bool = True
+    lookup_llm_enabled: bool = False
 
 
     @property

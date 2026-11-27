@@ -16,6 +16,8 @@ extraEnv:
     value: "UTC"
   - name: "CORS_ORIGINS"
     value: "https://verbaflow.juanfranciscoperez.es"
+  - name: "LOOKUP_LLM_ENABLED"
+    value: "false"
 extraEnvFrom:
   - secretRef:
       name: backend-secrets
